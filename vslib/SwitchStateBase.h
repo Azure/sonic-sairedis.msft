@@ -92,11 +92,15 @@ namespace saivs
 
             virtual sai_status_t set_acl_capabilities();
 
+            virtual sai_status_t set_maximum_number_of_traffic_classes();
+
             virtual sai_status_t set_maximum_number_of_childs_per_scheduler_group();
 
             virtual sai_status_t set_number_of_ecmp_groups();
 
             virtual sai_status_t set_static_crm_values();
+
+            virtual sai_status_t set_initial_tam_objects();
 
             virtual sai_status_t set_static_acl_resource_list(
                     _In_ sai_switch_attr_t acl_resource,
@@ -209,6 +213,8 @@ namespace saivs
                     _In_ sai_object_id_t port_id);
 
             virtual sai_status_t create_qos_queues();
+
+            virtual sai_status_t set_number_of_queues();
 
             virtual sai_status_t create_scheduler_group_tree(
                     _In_ const std::vector<sai_object_id_t>& sgs,
@@ -543,6 +549,14 @@ namespace saivs
             void send_fdb_event_notification(
                     _In_ const sai_fdb_event_notification_data_t& data);
 
+        protected: // Telemetry and Monitor
+
+            void send_tam_tel_type_config_change(
+                _In_ sai_object_id_t tam_tel_type_id);
+
+            sai_status_t refresh_tam_tel_ipfix_templates(
+                _In_ sai_object_id_t tam_tel_type_id);
+
         protected:
 
             void findObjects(
@@ -568,11 +582,15 @@ namespace saivs
                     _In_ sai_object_id_t macsec_sa_id,
                     _In_ const sai_attribute_t* attr);
 
+            sai_status_t setTamTelType(
+                _In_ sai_object_id_t tam_tel_type_id,
+                _In_ const sai_attribute_t *attr);
+
             sai_status_t createMACsecPort(
-                    _In_ sai_object_id_t macsec_sa_id,
-                    _In_ sai_object_id_t switch_id,
-                    _In_ uint32_t attr_count,
-                    _In_ const sai_attribute_t *attr_list);
+                _In_ sai_object_id_t macsec_sa_id,
+                _In_ sai_object_id_t switch_id,
+                _In_ uint32_t attr_count,
+                _In_ const sai_attribute_t *attr_list);
 
             sai_status_t createMACsecSA(
                     _In_ sai_object_id_t macsec_sa_id,
@@ -582,6 +600,18 @@ namespace saivs
 
             sai_status_t createMACsecSC(
                     _In_ sai_object_id_t macsec_sa_id,
+                    _In_ sai_object_id_t switch_id,
+                    _In_ uint32_t attr_count,
+                    _In_ const sai_attribute_t *attr_list);
+
+            sai_status_t createTam(
+                _In_ sai_object_id_t tam_id,
+                _In_ sai_object_id_t switch_id,
+                _In_ uint32_t attr_count,
+                _In_ const sai_attribute_t *attr_list);
+
+            sai_status_t createTamTelemetry(
+                    _In_ sai_object_id_t tam_telemetry_id,
                     _In_ sai_object_id_t switch_id,
                     _In_ uint32_t attr_count,
                     _In_ const sai_attribute_t *attr_list);
@@ -723,8 +753,25 @@ namespace saivs
             virtual sai_status_t querySwitchHashAlgorithmCapability(
                                       _Inout_ sai_s32_list_t *enum_values_capability);
 
+            virtual sai_status_t querySwitchPacketTrimmingDscpResolutionModeCapability(
+                                      _Inout_ sai_s32_list_t *enum_values_capability);
+
+            virtual sai_status_t querySwitchPacketTrimmingQueueResolutionModeCapability(
+                                      _Inout_ sai_s32_list_t *enum_values_capability);
+
+            virtual sai_status_t queryBufferProfilePacketAdmissionFailActionCapability(
+                                      _Inout_ sai_s32_list_t *enum_values_capability);
+
             virtual sai_status_t queryPortAutonegFecOverrideSupportCapability(
                                       _Out_ sai_attr_capability_t *attr_capability);
+
+        protected:
+
+            virtual sai_status_t queryPortStatsCapability(
+                                      _Inout_ sai_stat_capability_list_t *stats_capability);
+
+            virtual sai_status_t queryQueueStatsCapability(
+                                      _Inout_ sai_stat_capability_list_t *stats_capability);
 
         public: // TODO private
 

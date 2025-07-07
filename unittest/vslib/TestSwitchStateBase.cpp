@@ -174,6 +174,111 @@ TEST_F(SwitchStateBaseTest, switchHashAlgorithmCapabilitiesGet)
     ASSERT_EQ(haSet1, haSet2);
 }
 
+TEST_F(SwitchStateBaseTest, switchPacketTrimmingDscpModeCapabilitiesGet)
+{
+    sai_s32_list_t data = { .count = 0, .list = nullptr };
+
+    auto status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_SWITCH, SAI_SWITCH_ATTR_PACKET_TRIM_DSCP_RESOLUTION_MODE, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_BUFFER_OVERFLOW);
+
+    std::vector<sai_int32_t> qmList(data.count);
+    data.list = qmList.data();
+
+    status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_SWITCH, SAI_SWITCH_ATTR_PACKET_TRIM_DSCP_RESOLUTION_MODE, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_SUCCESS);
+
+    const std::set<sai_packet_trim_dscp_resolution_mode_t> qmSet1 = {
+        SAI_PACKET_TRIM_DSCP_RESOLUTION_MODE_DSCP_VALUE,
+        SAI_PACKET_TRIM_DSCP_RESOLUTION_MODE_FROM_TC
+    };
+
+    std::set<sai_packet_trim_dscp_resolution_mode_t> qmSet2;
+
+    std::transform(
+        qmList.cbegin(), qmList.cend(), std::inserter(qmSet2, qmSet2.begin()),
+        [](sai_int32_t value) { return static_cast<sai_packet_trim_dscp_resolution_mode_t>(value); }
+    );
+    ASSERT_EQ(qmSet1, qmSet2);
+}
+
+TEST_F(SwitchStateBaseTest, switchPacketTrimmingQueueModeCapabilitiesGet)
+{
+    sai_s32_list_t data = { .count = 0, .list = nullptr };
+
+    auto status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_SWITCH, SAI_SWITCH_ATTR_PACKET_TRIM_QUEUE_RESOLUTION_MODE, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_BUFFER_OVERFLOW);
+
+    std::vector<sai_int32_t> qmList(data.count);
+    data.list = qmList.data();
+
+    status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_SWITCH, SAI_SWITCH_ATTR_PACKET_TRIM_QUEUE_RESOLUTION_MODE, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_SUCCESS);
+
+    const std::set<sai_packet_trim_queue_resolution_mode_t> qmSet1 = {
+        SAI_PACKET_TRIM_QUEUE_RESOLUTION_MODE_STATIC,
+        SAI_PACKET_TRIM_QUEUE_RESOLUTION_MODE_DYNAMIC
+    };
+
+    std::set<sai_packet_trim_queue_resolution_mode_t> qmSet2;
+
+    std::transform(
+        qmList.cbegin(), qmList.cend(), std::inserter(qmSet2, qmSet2.begin()),
+        [](sai_int32_t value) { return static_cast<sai_packet_trim_queue_resolution_mode_t>(value); }
+    );
+    ASSERT_EQ(qmSet1, qmSet2);
+}
+
+TEST_F(SwitchStateBaseTest, bufferProfilePacketAdmissionFailActionCapabilitiesGet)
+{
+    sai_s32_list_t data = { .count = 0, .list = nullptr };
+
+    auto status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_BUFFER_PROFILE, SAI_BUFFER_PROFILE_ATTR_PACKET_ADMISSION_FAIL_ACTION, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_BUFFER_OVERFLOW);
+
+    std::vector<sai_int32_t> paList(data.count);
+    data.list = paList.data();
+
+    status = m_ss->queryAttrEnumValuesCapability(
+        m_swid, SAI_OBJECT_TYPE_BUFFER_PROFILE, SAI_BUFFER_PROFILE_ATTR_PACKET_ADMISSION_FAIL_ACTION, &data
+    );
+    ASSERT_EQ(status, SAI_STATUS_SUCCESS);
+
+    const std::set<sai_buffer_profile_packet_admission_fail_action_t> paSet1 = {
+        SAI_BUFFER_PROFILE_PACKET_ADMISSION_FAIL_ACTION_DROP,
+        SAI_BUFFER_PROFILE_PACKET_ADMISSION_FAIL_ACTION_DROP_AND_TRIM
+    };
+
+    std::set<sai_buffer_profile_packet_admission_fail_action_t> paSet2;
+
+    std::transform(
+        paList.cbegin(), paList.cend(), std::inserter(paSet2, paSet2.begin()),
+        [](sai_int32_t value) { return static_cast<sai_buffer_profile_packet_admission_fail_action_t>(value); }
+    );
+    ASSERT_EQ(paSet1, paSet2);
+}
+
+TEST_F(SwitchStateBaseTest, switchQoSMaxNumOfTrafficClasses)
+{
+    ASSERT_EQ(m_ss->set_maximum_number_of_traffic_classes(), SAI_STATUS_SUCCESS);
+
+    sai_attribute_t attr;
+    attr.id = SAI_SWITCH_ATTR_QOS_MAX_NUMBER_OF_TRAFFIC_CLASSES;
+    ASSERT_EQ(m_ss->get(SAI_OBJECT_TYPE_SWITCH, sai_serialize_object_id(m_swid), 1, &attr), SAI_STATUS_SUCCESS);
+
+    const sai_uint8_t maxTcNum = 16;
+    ASSERT_EQ(attr.value.u8, maxTcNum);
+}
+
 //Test the following function:
 //sai_status_t initialize_voq_switch_objects(
 //             _In_ uint32_t attr_count,
@@ -242,4 +347,31 @@ TEST(SwitchStateBase, initialize_voq_switch)
     // Check the result of the initialize_voq_switch_objects
     EXPECT_EQ(SAI_STATUS_SUCCESS,
               ss.initialize_voq_switch_objects((uint32_t)attrs.size(), attrs.data()));
+}
+
+TEST(SwitchStateBase, query_stats_st_capability)
+{
+    auto sc = std::make_shared<SwitchConfig>(0, "");
+    auto scc = std::make_shared<SwitchConfigContainer>();
+
+    SwitchStateBase ss(
+        0x2100000000,
+        std::make_shared<RealObjectIdManager>(0, scc),
+        sc);
+
+    sai_stat_st_capability_list_t stats_capability;
+    std::vector<sai_stat_st_capability_t> buffer;
+    buffer.resize(96);
+    stats_capability.count = static_cast<uint32_t>(buffer.size());
+    stats_capability.list = buffer.data();
+
+    EXPECT_EQ(SAI_STATUS_SUCCESS,
+              ss.queryStatsStCapability(0,
+                                        SAI_OBJECT_TYPE_PORT,
+                                        &stats_capability));
+
+    EXPECT_EQ(SAI_STATUS_SUCCESS,
+              static_cast<SwitchState&>(ss).queryStatsStCapability(0,
+                                        SAI_OBJECT_TYPE_PORT,
+                                        &stats_capability));
 }

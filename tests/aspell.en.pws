@@ -430,6 +430,7 @@ TXSC
 typedef
 uint
 uncomment
+unicast
 uninitialize
 unistd
 unittest
@@ -479,3 +480,9 @@ saiproxy
 submodule
 Enqueue
 deque
+apiversion
+vso
+VxLAN
+IPFIX
+IPFix
+ipfix

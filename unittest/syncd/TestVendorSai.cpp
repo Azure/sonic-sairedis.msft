@@ -1567,6 +1567,21 @@ TEST(VendorSai, bulk_meter_rules)
     EXPECT_EQ(SAI_STATUS_SUCCESS, sai.remove((sai_object_type_t)SAI_OBJECT_TYPE_METER_POLICY, meter_policy1));
 }
 
+TEST_F(VendorSaiTest, bulk_prefix_compression_entry)
+{
+    sai_prefix_compression_entry_t *e = nullptr;
+
+    // metadata will fail
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkCreate(0, e, nullptr, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkRemove(0, e, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_NOT_SUPPORTED,
+            m_vsai->bulkSet(0, e, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+}
+
 TEST(VendorSai, logSet_logGet)
 {
     VendorSai sai;
@@ -1576,4 +1591,71 @@ TEST(VendorSai, logSet_logGet)
 
     EXPECT_EQ(SAI_LOG_LEVEL_DEBUG, sai.logGet(SAI_API_PORT));
     EXPECT_EQ(SAI_LOG_LEVEL_NOTICE, sai.logGet(SAI_API_SWITCH));
+}
+
+TEST_F(VendorSaiTest, bulk_outbound_port_map_port_range_entry)
+{
+    sai_outbound_port_map_port_range_entry_t *e = nullptr;
+
+    // metadata will fail
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkCreate(0, e, nullptr, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkRemove(0, e, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_NOT_SUPPORTED,
+            m_vsai->bulkSet(0, e, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+}
+
+TEST_F(VendorSaiTest, bulk_global_trusted_vni_entry)
+{
+    sai_global_trusted_vni_entry_t *e = nullptr;
+
+    // metadata will fail
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkCreate(0, e, nullptr, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkRemove(0, e, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_NOT_SUPPORTED,
+            m_vsai->bulkSet(0, e, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+}
+
+TEST_F(VendorSaiTest, bulk_eni_trusted_vni_entry)
+{
+    sai_eni_trusted_vni_entry_t *e = nullptr;
+
+    // metadata will fail
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkCreate(0, e, nullptr, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER,
+            m_vsai->bulkRemove(0, e, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+
+    EXPECT_EQ(SAI_STATUS_NOT_SUPPORTED,
+            m_vsai->bulkSet(0, e, nullptr, SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR, nullptr));
+}
+
+TEST(VendorSai, queryStatsStCapability)
+{
+    VendorSai sai;
+    sai.apiInitialize(0, &test_services);
+
+    sai_stat_st_capability_list_t st;
+
+    sai_stat_st_capability_t item;
+
+    st.count = 1;
+    st.list = &item;
+
+    sai_status_t status = sai.queryStatsStCapability(
+            SAI_NULL_OBJECT_ID, // switch id
+            SAI_OBJECT_TYPE_QUEUE,
+            &st);
+
+    // success expected, since always compiled against virtual switch
+
+    EXPECT_EQ(SAI_STATUS_INVALID_PARAMETER, status); // switch is null
 }

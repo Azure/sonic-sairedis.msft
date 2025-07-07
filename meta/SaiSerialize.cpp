@@ -975,6 +975,20 @@ std::string sai_serialize_meter_bucket_entry(
     return j.dump();
 }
 
+std::string sai_serialize_prefix_compression_entry(
+        _In_ const sai_prefix_compression_entry_t &prefix_compression_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    j["switch_id"] = sai_serialize_object_id(prefix_compression_entry.switch_id);
+    j["prefix_table_id"] = sai_serialize_object_id(prefix_compression_entry.prefix_table_id);
+    j["prefix"] = sai_serialize_ip_prefix(prefix_compression_entry.prefix);
+
+    return j.dump();
+}
+
 std::string sai_serialize_flow_entry(
         _In_ const sai_flow_entry_t &flow_entry)
 {
@@ -1871,6 +1885,20 @@ std::string sai_serialize_pa_validation_entry(
     return j.dump();
 }
 
+std::string sai_serialize_outbound_port_map_port_range_entry(
+        _In_ const sai_outbound_port_map_port_range_entry_t &outbound_port_map_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    j["switch_id"] = sai_serialize_object_id(outbound_port_map_entry.switch_id);
+    j["outbound_port_map_id"] = sai_serialize_object_id(outbound_port_map_entry.outbound_port_map_id);
+    j["dst_port_range"] = sai_serialize_range(outbound_port_map_entry.dst_port_range);
+
+    return j.dump();
+}
+
 std::string sai_serialize_outbound_routing_entry(
         _In_ const sai_outbound_routing_entry_t &outbound_routing_entry)
 {
@@ -1881,6 +1909,33 @@ std::string sai_serialize_outbound_routing_entry(
     j["switch_id"] = sai_serialize_object_id(outbound_routing_entry.switch_id);
     j["destination"] = sai_serialize_ip_prefix(outbound_routing_entry.destination);
     j["outbound_routing_group_id"] = sai_serialize_object_id(outbound_routing_entry.outbound_routing_group_id);
+
+    return j.dump();
+}
+
+std::string sai_serialize_global_trusted_vni_entry(
+        _In_ const sai_global_trusted_vni_entry_t &global_trusted_vni_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    j["switch_id"] = sai_serialize_object_id(global_trusted_vni_entry.switch_id);
+    j["vni_range"] = sai_serialize_range(global_trusted_vni_entry.vni_range);
+
+    return j.dump();
+}
+
+std::string sai_serialize_eni_trusted_vni_entry(
+        _In_ const sai_eni_trusted_vni_entry_t &eni_trusted_vni_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    j["switch_id"] = sai_serialize_object_id(eni_trusted_vni_entry.switch_id);
+    j["eni_id"] = sai_serialize_object_id(eni_trusted_vni_entry.eni_id);
+    j["vni_range"] = sai_serialize_range(eni_trusted_vni_entry.vni_range);
 
     return j.dump();
 }
@@ -2678,6 +2733,10 @@ static bool sai_serialize_object_entry(
             key = sai_serialize_mcast_fdb_entry(key_entry.mcast_fdb_entry);
             return true;
 
+        case SAI_OBJECT_TYPE_PREFIX_COMPRESSION_ENTRY:
+            key = sai_serialize_prefix_compression_entry(key_entry.prefix_compression_entry);
+            return true;
+
         default:
             return false;
     }
@@ -2911,6 +2970,50 @@ std::string sai_serialize_stats_capability_list(
     for (uint32_t i = 0; i < stat_capability_list.count; ++i)
     {
         json item = sai_serialize_stat_capability(stat_capability_list.list[i], meta);
+
+        arr.push_back(item);
+    }
+
+    j["list"] = arr;
+
+    return j.dump();
+}
+
+json sai_serialize_stat_st_capability(
+        _In_ const sai_stat_st_capability_t &stat_capability,
+        _In_ const sai_enum_metadata_t *meta)
+{
+    SWSS_LOG_ENTER();
+
+    json j = sai_serialize_stat_capability(stat_capability.capability, meta);
+    j["minimal_polling_interval"] = sai_serialize_number(stat_capability.minimal_polling_interval, false);
+
+    return j;
+}
+
+std::string sai_serialize_stats_st_capability_list(
+        _In_ const sai_stat_st_capability_list_t &stat_capability_list,
+        _In_ const sai_enum_metadata_t *meta,
+        _In_ bool countOnly)
+{
+    SWSS_LOG_ENTER();
+
+    json j;
+
+    j["count"] = stat_capability_list.count;
+
+    if (stat_capability_list.list == NULL || countOnly)
+    {
+        j["list"] = nullptr;
+
+        return j.dump();
+    }
+
+    json arr = json::array();
+
+    for (uint32_t i = 0; i < stat_capability_list.count; ++i)
+    {
+        json item = sai_serialize_stat_st_capability(stat_capability_list.list[i], meta);
 
         arr.push_back(item);
     }
@@ -4527,6 +4630,19 @@ void sai_deserialize_meter_bucket_entry(
     sai_deserialize_number(j["meter_class"], meter_bucket_entry.meter_class);
 }
 
+void sai_deserialize_prefix_compression_entry(
+        _In_ const std::string& s,
+        _Out_ sai_prefix_compression_entry_t& prefix_compression_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::parse(s);
+
+    sai_deserialize_object_id(j["switch_id"], prefix_compression_entry.switch_id);
+    sai_deserialize_object_id(j["prefix_table_id"], prefix_compression_entry.prefix_table_id);
+    sai_deserialize_ip_prefix(j["prefix"], prefix_compression_entry.prefix);
+}
+
 void sai_deserialize_flow_entry(
         _In_ const std::string& s,
         _Out_ sai_flow_entry_t &flow_entry)
@@ -4868,6 +4984,19 @@ void sai_deserialize_pa_validation_entry(
     sai_deserialize_ip_address(j["sip"], pa_validation_entry.sip);
 }
 
+void sai_deserialize_outbound_port_map_port_range_entry(
+        _In_ const std::string &s,
+        _Out_ sai_outbound_port_map_port_range_entry_t &outbound_port_map_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::parse(s);
+
+    sai_deserialize_object_id(j["switch_id"], outbound_port_map_entry.switch_id);
+    sai_deserialize_object_id(j["outbound_port_map_id"], outbound_port_map_entry.outbound_port_map_id);
+    sai_deserialize_range(j["dst_port_range"], outbound_port_map_entry.dst_port_range);
+}
+
 void sai_deserialize_outbound_routing_entry(
         _In_ const std::string &s,
         _Out_ sai_outbound_routing_entry_t& outbound_routing_entry)
@@ -4879,6 +5008,31 @@ void sai_deserialize_outbound_routing_entry(
     sai_deserialize_object_id(j["switch_id"], outbound_routing_entry.switch_id);
     sai_deserialize_ip_prefix(j["destination"], outbound_routing_entry.destination);
     sai_deserialize_object_id(j["outbound_routing_group_id"], outbound_routing_entry.outbound_routing_group_id);
+}
+
+void sai_deserialize_global_trusted_vni_entry(
+        _In_ const std::string &s,
+        _Out_ sai_global_trusted_vni_entry_t &global_trusted_vni_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::parse(s);
+
+    sai_deserialize_object_id(j["switch_id"], global_trusted_vni_entry.switch_id);
+    sai_deserialize_range(j["vni_range"], global_trusted_vni_entry.vni_range);
+}
+
+void sai_deserialize_eni_trusted_vni_entry(
+        _In_ const std::string &s,
+        _Out_ sai_eni_trusted_vni_entry_t &eni_trusted_vni_entry)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::parse(s);
+
+    sai_deserialize_object_id(j["switch_id"], eni_trusted_vni_entry.switch_id);
+    sai_deserialize_object_id(j["eni_id"], eni_trusted_vni_entry.eni_id);
+    sai_deserialize_range(j["vni_range"], eni_trusted_vni_entry.vni_range);
 }
 
 void sai_deserialize_outbound_ca_to_pa_entry(
@@ -4976,6 +5130,10 @@ bool sai_deserialize_object_entry(
 
         case SAI_OBJECT_TYPE_MCAST_FDB_ENTRY:
             sai_deserialize_mcast_fdb_entry(object_id, meta_key.objectkey.key.mcast_fdb_entry);
+            return true;
+
+        case SAI_OBJECT_TYPE_PREFIX_COMPRESSION_ENTRY:
+            sai_deserialize_prefix_compression_entry(object_id, meta_key.objectkey.key.prefix_compression_entry);
             return true;
 
         default:
@@ -5804,5 +5962,94 @@ void sai_deserialize_stats_capability_list(
         /* Skip the commas */
         stat_enum_position++;
         stat_modes_position++;
+    }
+}
+
+/**
+ *   @brief deserialize the stats st capability list
+ *
+ *   Iterates thru stat_enum_str and populate
+ *   the stats_capability with respective
+ *   stat_enum (String to Enum conversion).
+ *   Also iterates thru stat_modes_str and populate
+ *   the stats_capability with respective
+ *   stat_modes (String to Enum conversion)
+ *
+ *   @param stats_capability stats stream telemetry capability enum list
+ *   @param stat_enum_str SAI stat enum list as string
+ *   @param stat_modes_str SAI stat mode list as string
+ *  @param minimal_polling_interval_str SAI minimal polling interval list as string
+ *   @return Void
+ */
+void sai_deserialize_stats_st_capability_list(
+    _Inout_ sai_stat_st_capability_list_t *stats_capability,
+    _In_ const std::string &stat_enum_str,
+    _In_ const std::string &stat_modes_str,
+    _In_ const std::string &minimal_polling_interval_str)
+{
+    SWSS_LOG_ENTER();
+
+    if (stats_capability == NULL)
+    {
+        SWSS_LOG_THROW("Stats capability pointer in deserialize is NULL");
+    }
+
+    uint32_t num_capabilities = stats_capability->count;
+    size_t stat_enum_position = 0;
+    size_t stat_modes_position = 0;
+    size_t stat_polling_interval_position = 0;
+
+    for (uint32_t i = 0; i < num_capabilities; i++)
+    {
+        /* 1. Populate stat_enum */
+        size_t old_stat_enum_position = stat_enum_position;
+        stat_enum_position = stat_enum_str.find(",", old_stat_enum_position);
+        std::string stat_enum = stat_enum_str.substr(old_stat_enum_position,
+                                                     stat_enum_position - old_stat_enum_position);
+        stats_capability->list[i].capability.stat_enum = std::stoi(stat_enum);
+
+        /* We have run out of values to add to our list */
+        if (stat_enum_position == std::string::npos)
+        {
+            if (num_capabilities != i + 1)
+            {
+                SWSS_LOG_THROW("Lesser stat_enums than expected: expected %d, received %d",
+                               num_capabilities, i + 1);
+            }
+
+            break;
+        }
+
+        /* 2. Populate stat_modes */
+        size_t old_stat_modes_position = stat_modes_position;
+        stat_modes_position = stat_modes_str.find(",", old_stat_modes_position);
+        std::string stat_modes = stat_modes_str.substr(old_stat_modes_position,
+                                                       stat_modes_position - old_stat_modes_position);
+        stats_capability->list[i].capability.stat_modes = std::stoi(stat_modes);
+
+        /* We have run out of values to add to our list */
+        if (stat_modes_position == std::string::npos)
+        {
+            if (num_capabilities != i + 1)
+            {
+                SWSS_LOG_THROW("Lesser stat_modes than expected: expected %d, received %d",
+                               num_capabilities, i + 1);
+            }
+
+            break;
+        }
+
+        /* 3. Populate minimal polling interval */
+        size_t old_stat_polling_interval_position = stat_polling_interval_position;
+        stat_polling_interval_position = minimal_polling_interval_str.find(",", old_stat_polling_interval_position);
+        std::string minimal_polling_interval = minimal_polling_interval_str.substr(old_stat_polling_interval_position,
+                stat_polling_interval_position - old_stat_polling_interval_position);
+        stats_capability->list[i].minimal_polling_interval = std::stoull(minimal_polling_interval);
+
+
+        /* Skip the commas */
+        stat_enum_position++;
+        stat_modes_position++;
+        stat_polling_interval_position++;
     }
 }
