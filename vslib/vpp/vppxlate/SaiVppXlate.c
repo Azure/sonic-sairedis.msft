@@ -3868,6 +3868,14 @@ const char * vpp_get_swif_name (const u32 swif_idx)
     return get_swif_name(vam, swif_idx);
 }
 
+uint32_t vpp_get_swif_idx_by_name(const char *hwif_name)
+{
+    vat_main_t *vam = &vat_main;
+    u32 idx = get_swif_idx(vam, hwif_name);
+
+    return (idx == (u32)~0) ? (uint32_t)~0u : (uint32_t)idx;
+}
+
 
 int delete_bond_member(const char * hwif_name)
 {
