@@ -6,12 +6,20 @@
 
 #include "vppxlate/SaiIntfStats.h"
 
+#include "PortConfigFileParser.h"
 #include "SwitchVppUtils.h"
+#include "saivs.h"
 
 #include <vector>
 #include <string>
 
 using namespace saivs;
+
+namespace
+{
+    constexpr const char *DEFAULT_PORT_CONFIG_FILE =
+            "/usr/share/sonic/hwsku/port_config.ini";
+}
 
 // TODO init vpp
 
@@ -25,6 +33,8 @@ SwitchVpp::SwitchVpp(
     m_tunnel_mgr_srv6(this)
 {
     SWSS_LOG_ENTER();
+
+    loadPortConfig();
 
     vpp_dp_initialize();
 }
@@ -40,6 +50,8 @@ SwitchVpp::SwitchVpp(
     m_tunnel_mgr_srv6(this)
 {
     SWSS_LOG_ENTER();
+
+    loadPortConfig();
 
     vpp_dp_initialize();
 }
@@ -59,6 +71,18 @@ SwitchVpp::~SwitchVpp()
     SWSS_LOG_NOTICE("SwitchVpp destructor completed");
 }
 
+void SwitchVpp::loadPortConfig()
+{
+    SWSS_LOG_ENTER();
+
+    const auto &profileMap = m_switchConfig->m_profileMap;
+    const auto portConfigFile = profileMap.find(SAI_KEY_VS_PORT_CONFIG_FILE);
+    const std::string portConfigPath = portConfigFile == profileMap.end()
+            ? DEFAULT_PORT_CONFIG_FILE
+            : portConfigFile->second;
+
+    m_portConfigMap = PortConfigFileParser::parse(portConfigPath);
+}
 sai_status_t SwitchVpp::create_qos_queues_per_port(
         _In_ sai_object_id_t port_id)
 {
@@ -1088,6 +1112,49 @@ sai_status_t SwitchVpp::create_internal(
     return SAI_STATUS_SUCCESS;
 }
 
+sai_status_t SwitchVpp::create_port_dependencies(
+        _In_ sai_object_id_t port_id,
+        _In_ uint32_t attr_count,
+        _In_ const sai_attribute_t *attr_list)
+{
+    SWSS_LOG_ENTER();
+
+    SWSS_LOG_WARN("check attributes and set, FIXME");
+
+    sai_attribute_t attr;
+
+    if (sai_metadata_get_attr_by_id(SAI_PORT_ATTR_ADMIN_STATE, attr_count, attr_list) == nullptr)
+    {
+        attr.id = SAI_PORT_ATTR_ADMIN_STATE;
+        attr.value.booldata = false;
+
+        CHECK_STATUS(set(SAI_OBJECT_TYPE_PORT, port_id, &attr));
+    }
+
+    if (sai_metadata_get_attr_by_id(SAI_PORT_ATTR_HOST_TX_READY_STATUS, attr_count, attr_list) == nullptr)
+    {
+        attr.id = SAI_PORT_ATTR_HOST_TX_READY_STATUS;
+        attr.value.u32 = SAI_PORT_HOST_TX_READY_STATUS_READY;
+
+        CHECK_STATUS(set(SAI_OBJECT_TYPE_PORT, port_id, &attr));
+    }
+
+    if (sai_metadata_get_attr_by_id(SAI_PORT_ATTR_AUTO_NEG_MODE, attr_count, attr_list) == nullptr)
+    {
+        attr.id = SAI_PORT_ATTR_AUTO_NEG_MODE;
+        attr.value.booldata = true;
+
+        CHECK_STATUS(set(SAI_OBJECT_TYPE_PORT, port_id, &attr));
+    }
+
+    CHECK_STATUS(create_ingress_priority_groups_per_port(port_id));
+    CHECK_STATUS(create_qos_queues_per_port(port_id));
+    CHECK_STATUS(create_scheduler_groups_per_port(port_id));
+    CHECK_STATUS(create_port_serdes_per_port(port_id));
+
+    return SAI_STATUS_SUCCESS;
+}
+
 sai_status_t SwitchVpp::createPort(
         _In_ sai_object_id_t object_id,
         _In_ sai_object_id_t switch_id,
@@ -1096,7 +1163,7 @@ sai_status_t SwitchVpp::createPort(
 {
     SWSS_LOG_ENTER();
 
-    UpdatePort(object_id, attr_count, attr_list);
+    CHECK_STATUS(UpdatePort(object_id, attr_count, attr_list));
 
     auto sid = sai_serialize_object_id(object_id);
 
@@ -1121,7 +1188,7 @@ sai_status_t SwitchVpp::createPort(
         CHECK_STATUS(create_internal(SAI_OBJECT_TYPE_PORT, sid, switch_id, attr_count, attr_list));
     }
 
-    return create_port_dependencies(object_id);
+    return create_port_dependencies(object_id, attr_count, attr_list);
 }
 
 
